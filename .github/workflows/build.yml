@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -39,14 +39,12 @@ jobs:
             -Wl,-install_name,@rpath/Camera67Files.dylib \
             Camera67Files.m -o dist/Camera67Files.dylib
 
-          xcrun --sdk iphoneos codesign --force --sign - dist/Camera67Probe.dylib
-          xcrun --sdk iphoneos codesign --force --sign - dist/Camera67Files.dylib
+          codesign --force --sign - dist/Camera67Probe.dylib
+          codesign --force --sign - dist/Camera67Files.dylib
 
           file dist/*.dylib
           xcrun lipo -info dist/Camera67Probe.dylib
           xcrun lipo -info dist/Camera67Files.dylib
-          xcrun otool -l dist/Camera67Probe.dylib
-          xcrun otool -l dist/Camera67Files.dylib
 
       - uses: actions/upload-artifact@v4
         with:
