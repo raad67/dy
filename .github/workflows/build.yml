@@ -1,0 +1,56 @@
+name: Build Camera67 dylibs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build arm64 iOS dylibs
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="$(xcrun --sdk iphoneos --show-sdk-path)"
+          mkdir -p dist
+
+          xcrun --sdk iphoneos clang \
+            -target arm64-apple-ios15.0 \
+            -isysroot "$SDK" \
+            -dynamiclib -O2 -fPIC -fvisibility=hidden \
+            -Wl,-undefined,dynamic_lookup \
+            -Wl,-install_name,@rpath/Camera67Probe.dylib \
+            Camera67Probe.c -o dist/Camera67Probe.dylib
+
+          xcrun --sdk iphoneos clang \
+            -target arm64-apple-ios15.0 \
+            -isysroot "$SDK" \
+            -dynamiclib -O2 -fobjc-arc -fblocks \
+            -framework Foundation \
+            -framework UIKit \
+            -framework Photos \
+            -Wl,-install_name,@rpath/Camera67Files.dylib \
+            Camera67Files.m -o dist/Camera67Files.dylib
+
+          xcrun --sdk iphoneos codesign --force --sign - dist/Camera67Probe.dylib
+          xcrun --sdk iphoneos codesign --force --sign - dist/Camera67Files.dylib
+
+          file dist/*.dylib
+          xcrun lipo -info dist/Camera67Probe.dylib
+          xcrun lipo -info dist/Camera67Files.dylib
+          xcrun otool -l dist/Camera67Probe.dylib
+          xcrun otool -l dist/Camera67Files.dylib
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Camera67-Dylibs-arm64
+          path: dist/*.dylib
+          if-no-files-found: error
+          retention-days: 14
